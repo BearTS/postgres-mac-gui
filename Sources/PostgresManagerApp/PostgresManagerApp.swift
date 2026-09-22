@@ -40,22 +40,24 @@ struct PostgresManagerApp: App {
 
 /// Manages the hybrid Dock behaviour.
 ///
-/// The app launches as an accessory (menu bar only, no Dock icon). Opening the main window
-/// promotes it to a regular app, which is what gives it a real menu bar — without that there is
-/// no Edit menu, and therefore no ⌘C/⌘V/⌘Z in the SQL editor. Closing the window demotes it again.
+/// The app is an `LSUIElement`, so it starts with no Dock icon and no app-switcher entry. But a
+/// SwiftUI `Window` scene opens its window at launch, and an app showing a real window with no
+/// Dock icon is just confusing — so the activation policy *follows window visibility* rather than
+/// being toggled by whoever happened to open the window:
+///
+/// - a visible main window  -> `.regular`, which also gives the app a real menu bar (without one
+///   there is no Edit menu, and therefore no ⌘C/⌘V/⌘Z in the SQL editor)
+/// - no visible main window -> `.accessory`, menu bar item only
 final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
+        MainWindowPresenter.shared.startTrackingWindows()
     }
 
     /// Clicking the Dock icon with no window open should bring the window back, not nothing.
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        if !flag {
-            MainWindowPresenter.shared.prepareToShowWindow()
-            MainWindowPresenter.shared.focusExistingWindow()
-            MainWindowPresenter.shared.activate()
-        }
+        if !flag { MainWindowPresenter.shared.showExistingWindow() }
         return true
     }
 
@@ -70,47 +72,57 @@ final class MainWindowPresenter {
     static let shared = MainWindowPresenter()
     static let windowID = "main"
 
-    private var observer: NSObjectProtocol?
+    private var observers: [NSObjectProtocol] = []
 
-    /// Promote to a regular app so the window gets a real menu bar. Call this *before*
-    /// `openWindow(id:)` — in the other order the window opens behind other apps.
-    func prepareToShowWindow() {
-        NSApp.setActivationPolicy(.regular)
-        observeWindowClose()
+    /// Keep the activation policy in step with whether a real window is on screen.
+    func startTrackingWindows() {
+        guard observers.isEmpty else { return }
+        let center = NotificationCenter.default
+        for name in [NSWindow.didBecomeKeyNotification, NSWindow.didUpdateNotification] {
+            observers.append(center.addObserver(forName: name, object: nil, queue: .main) { _ in
+                Task { @MainActor in MainWindowPresenter.shared.syncActivationPolicy() }
+            })
+        }
+        observers.append(center.addObserver(forName: NSWindow.willCloseNotification, object: nil, queue: .main) { notification in
+            let closing = notification.object as? NSWindow
+            Task { @MainActor in
+                // willClose fires before the window leaves NSApp.windows, so discount it here.
+                MainWindowPresenter.shared.syncActivationPolicy(ignoring: closing)
+            }
+        })
+        syncActivationPolicy()
     }
 
-    /// Activate after the policy change has settled, otherwise focus does not follow.
+    /// `.regular` while a real window is visible, `.accessory` otherwise.
+    func syncActivationPolicy(ignoring excluded: NSWindow? = nil) {
+        let hasVisibleWindow = NSApp.windows.contains { window in
+            window !== excluded && window.isVisible && Self.isMainWindow(window)
+        }
+        let desired: NSApplication.ActivationPolicy = hasVisibleWindow ? .regular : .accessory
+        guard NSApp.activationPolicy() != desired else { return }
+        NSApp.setActivationPolicy(desired)
+    }
+
+    /// Bring the main window forward, promoting out of accessory mode first so it does not
+    /// open behind other apps.
+    func showExistingWindow() {
+        syncActivationPolicy()
+        if let window = NSApp.windows.first(where: Self.isMainWindow) {
+            NSApp.setActivationPolicy(.regular)
+            window.makeKeyAndOrderFront(nil)
+        }
+        activate()
+    }
+
+    /// Activate on the next runloop turn, so an activation-policy change has settled first.
     func activate() {
         Task { @MainActor in
             NSApp.activate(ignoringOtherApps: true)
         }
     }
 
-    /// Bring an already-open window forward, if there is one.
-    @discardableResult
-    func focusExistingWindow() -> Bool {
-        guard let window = NSApp.windows.first(where: { $0.canBecomeMain && $0.isVisible }) else {
-            return false
-        }
-        window.makeKeyAndOrderFront(nil)
-        return true
-    }
-
-    /// Drop back to menu-bar-only once the last real window goes away.
-    private func observeWindowClose() {
-        guard observer == nil else { return }
-        observer = NotificationCenter.default.addObserver(
-            forName: NSWindow.willCloseNotification, object: nil, queue: .main
-        ) { notification in
-            guard let closing = notification.object as? NSWindow, closing.canBecomeMain else { return }
-            Task { @MainActor in
-                // willClose fires before the window leaves NSApp.windows, so the one closing
-                // is still counted here.
-                let remaining = NSApp.windows.filter { $0.isVisible && $0.canBecomeMain && $0 !== closing }
-                if remaining.isEmpty {
-                    NSApp.setActivationPolicy(.accessory)
-                }
-            }
-        }
+    /// The status-bar item is an NSWindow too; only real windows should drive the Dock icon.
+    private static func isMainWindow(_ window: NSWindow) -> Bool {
+        window.canBecomeMain && !(window is NSPanel)
     }
 }

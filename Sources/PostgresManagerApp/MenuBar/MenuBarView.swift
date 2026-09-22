@@ -81,12 +81,11 @@ struct MenuBarView: View {
         }
     }
 
-    /// Promote out of accessory mode before opening, or the window appears behind everything.
+    /// For a single `Window` scene, `openWindow` focuses the existing window when it is already
+    /// open and creates it otherwise — so it handles both cases. The activation policy then
+    /// follows automatically from the window becoming visible.
     private func openMainWindow() {
-        MainWindowPresenter.shared.prepareToShowWindow()
-        if !MainWindowPresenter.shared.focusExistingWindow() {
-            openWindow(id: MainWindowPresenter.windowID)
-        }
+        openWindow(id: MainWindowPresenter.windowID)
         MainWindowPresenter.shared.activate()
     }
 }
