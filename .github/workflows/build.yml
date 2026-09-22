@@ -59,32 +59,32 @@ jobs:
 
       - name: Verify bundle
         run: |
-          codesign --verify --verbose=2 build/PostgresManager.app
-          plutil -lint build/PostgresManager.app/Contents/Info.plist
-          test -x build/PostgresManager.app/Contents/MacOS/PostgresManager
-          test -f build/PostgresManager.app/Contents/Resources/AppIcon.icns
+          codesign --verify --verbose=2 build/DevServices.app
+          plutil -lint build/DevServices.app/Contents/Info.plist
+          test -x build/DevServices.app/Contents/MacOS/DevServices
+          test -f build/DevServices.app/Contents/Resources/AppIcon.icns
 
       - name: Create DMG
-        run: ./Scripts/make-dmg.sh build/PostgresManager.dmg
+        run: ./Scripts/make-dmg.sh build/DevServices.dmg
 
       - name: Upload DMG artifact
         uses: actions/upload-artifact@v4
         with:
-          name: PostgresManager-dmg
-          path: build/PostgresManager.dmg
+          name: DevServices-dmg
+          path: build/DevServices.dmg
           if-no-files-found: error
 
       - name: Attach DMG to release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: build/PostgresManager.dmg
+          files: build/DevServices.dmg
           generate_release_notes: true
           body: |
             ## Install
 
-            1. Download `PostgresManager.dmg` below and open it.
-            2. Drag **Postgres Manager** to Applications.
+            1. Download `DevServices.dmg` below and open it.
+            2. Drag **Dev Services** to Applications.
             3. Right-click it in Applications and choose **Open**, then confirm.
 
             That last step is needed because this build is ad-hoc signed rather
@@ -92,7 +92,7 @@ jobs:
             account and no signing secrets. You can also run:
 
             ```
-            xattr -dr com.apple.quarantine "/Applications/PostgresManager.app"
+            xattr -dr com.apple.quarantine "/Applications/DevServices.app"
             ```
 
             Or build it yourself, which avoids the prompt entirely:

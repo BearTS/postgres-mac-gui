@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Builds Postgres Manager from source and installs it to /Applications.
+# Builds Dev Services from source and installs it to /Applications.
 #
 #   ./install.sh
 #
@@ -11,11 +11,11 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-APP_NAME="PostgresManager"
+APP_NAME="DevServices"
 APP_DIR="build/${APP_NAME}.app"
 DESTINATION="/Applications/${APP_NAME}.app"
 
-echo "Postgres Manager — build and install"
+echo "Dev Services — build and install"
 echo
 
 if ! command -v swift >/dev/null 2>&1; then
@@ -36,7 +36,7 @@ Scripts/build-app.sh release
 if [ -d "$DESTINATION" ]; then
     echo "==> Replacing existing $DESTINATION"
     # Quit a running copy first, or the replace fails while it holds its own binary open.
-    osascript -e 'quit app "PostgresManager"' 2>/dev/null || true
+    osascript -e 'quit app "DevServices"' 2>/dev/null || true
     sleep 1
     rm -rf "$DESTINATION"
 fi

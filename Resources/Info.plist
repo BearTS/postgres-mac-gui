@@ -3,13 +3,13 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleName</key>
-	<string>Postgres Manager</string>
+	<string>Dev Services</string>
 	<key>CFBundleDisplayName</key>
-	<string>Postgres Manager</string>
+	<string>Dev Services</string>
 	<key>CFBundleExecutable</key>
-	<string>PostgresManager</string>
+	<string>DevServices</string>
 	<key>CFBundleIdentifier</key>
-	<string>dev.anujp.postgresmanager</string>
+	<string>dev.anujp.devservices</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundlePackageType</key>

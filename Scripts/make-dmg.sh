@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 #
-# Packages build/PostgresManager.app into a drag-to-Applications disk image.
+# Packages build/DevServices.app into a drag-to-Applications disk image.
 #
 # Usage: Scripts/make-dmg.sh [output.dmg]
 #
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-APP_NAME="PostgresManager"
+APP_NAME="DevServices"
 APP_DIR="build/${APP_NAME}.app"
-VOLUME_NAME="Postgres Manager"
+VOLUME_NAME="Dev Services"
 OUTPUT="${1:-build/${APP_NAME}.dmg}"
 STAGING="build/dmg-staging"
 
@@ -26,10 +26,10 @@ cp -R "$APP_DIR" "$STAGING/"
 ln -s /Applications "$STAGING/Applications"
 
 cat > "$STAGING/Read Me.txt" <<'TXT'
-Postgres Manager
+Dev Services
 ================
 
-1. Drag Postgres Manager to the Applications folder.
+1. Drag Dev Services to the Applications folder.
 2. Open it. The icon appears in your menu bar (there is no Dock icon until you
    open a window).
 
@@ -40,7 +40,7 @@ with no Apple Developer account. macOS will therefore refuse the first launch of
 a downloaded copy. To allow it, either:
 
   * Right-click the app in Applications and choose Open, then confirm; or
-  * Run:  xattr -dr com.apple.quarantine "/Applications/PostgresManager.app"
+  * Run:  xattr -dr com.apple.quarantine "/Applications/DevServices.app"
 
 Building it yourself avoids this entirely — see the repository README.
 TXT

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Builds PostgresManager.app. No Xcode required — SwiftPM compiles the binary and this script
+# Builds DevServices.app. No Xcode required — SwiftPM compiles the binary and this script
 # assembles the bundle around it.
 #
 # Usage: Scripts/build-app.sh [debug|release]   (default: release)
@@ -9,18 +9,18 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 CONFIG="${1:-release}"
-APP_NAME="PostgresManager"
-BUNDLE_ID="dev.anujp.postgresmanager"
+APP_NAME="DevServices"
+BUNDLE_ID="dev.anujp.devservices"
 APP_DIR="build/${APP_NAME}.app"
 CONTENTS="${APP_DIR}/Contents"
-BIN=".build/${CONFIG}/PostgresManagerApp"
+BIN=".build/${CONFIG}/DevServicesApp"
 
 # Version: a git tag when building from one, otherwise the short SHA.
 VERSION="$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo '0.1.0')"
 BUILD_NUMBER="$(git rev-list --count HEAD 2>/dev/null || echo 1)"
 
 echo "==> Building ($CONFIG)"
-swift build -c "$CONFIG" --product PostgresManagerApp
+swift build -c "$CONFIG" --product DevServicesApp
 
 if [ ! -f Resources/AppIcon.icns ]; then
     echo "==> Generating app icon"

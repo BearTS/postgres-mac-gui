@@ -1,4 +1,4 @@
-# Postgres Manager
+# Dev Services
 #
 # The real work lives in Scripts/ so that CI, the Makefile and install.sh all
 # run exactly the same steps.
@@ -17,8 +17,8 @@ dmg: app
 	@Scripts/make-dmg.sh
 
 run: app
-	@pkill -x PostgresManager 2>/dev/null || true
-	@open build/PostgresManager.app
+	@pkill -x DevServices 2>/dev/null || true
+	@open build/DevServices.app
 
 install:
 	@./install.sh

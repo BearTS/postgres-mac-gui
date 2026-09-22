@@ -1,5 +1,5 @@
 {
-  "originHash" : "e80999e7f8caedd84f96f67fe66c38e83ad3a20b98b614969525d3f2d7993503",
+  "originHash" : "5367c87c725f401f60c554fa83b2f73364e1c00eac106045b4648f94b944cda3",
   "pins" : [
     {
       "identity" : "postgres-nio",
@@ -53,6 +53,15 @@
       "state" : {
         "revision" : "da9d28d69ebe3894b18376c8f2395c2f37b8448f",
         "version" : "4.5.2"
+      }
+    },
+    {
+      "identity" : "swift-kafka-client",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/swift-server/swift-kafka-client.git",
+      "state" : {
+        "revision" : "434af114fda74d87e344980917d196f957dab1ec",
+        "version" : "1.0.0-alpha.9"
       }
     },
     {
@@ -116,6 +125,15 @@
       "state" : {
         "revision" : "869129b7bf4ecc57b97d0193ad29690ca2134750",
         "version" : "1.8.1"
+      }
+    },
+    {
+      "identity" : "zstd",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/facebook/zstd.git",
+      "state" : {
+        "revision" : "f8745da6ff1ad1e7bab384bd1f9d742439278e99",
+        "version" : "1.5.7"
       }
     }
   ],

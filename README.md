@@ -1,30 +1,50 @@
-# Postgres Manager
+# Dev Services
 
-A native macOS menu bar app and GUI for running PostgreSQL locally — so you don't need Docker
-for a development database.
+A native macOS menu bar app for running **PostgreSQL**, **HashiCorp Vault** and **Apache Kafka**
+locally — so you don't need Docker for a development stack.
 
-Start and stop the server from the menu bar, install Postgres if you don't have it, browse
-databases and tables, run SQL, see who's connected, back up and restore a single database, and
-give each user read or write access per database without writing a single `GRANT` by hand.
+Start and stop each service from the menu bar, install anything you're missing, and manage the
+parts that actually matter: databases and per-user access for Postgres, secrets and dev tokens
+for Vault, topics and messages for Kafka. Every service can be started, stopped, reset and wiped.
 
 ## What it does
 
+### PostgreSQL
+
 | | |
 |---|---|
-| **Menu bar control** | Start / stop / restart, live status, port, and connected-client count. No Dock icon until you open a window. |
-| **Installs Postgres for you** | No server installed? Pick a version (14–18), see the exact `brew install` command, and run it from the app with live output. |
+| **Installs it for you** | No server? Pick a version (14–18), see the exact `brew install` command, and run it from the app with live output. |
 | **Databases and tables** | Databases with sizes and owners; tables with schemas, columns, indexes, sizes and a paged row browser. |
-| **SQL editor** | Multiple statements, per-statement timing, real Postgres error messages with hint and position, copy results as CSV. |
+| **SQL editor** | Multiple statements, per-statement timing, real Postgres errors with hint and position, copy results as CSV. |
 | **Users & access** | A users × databases grid. Pick *No Access*, *Read Only*, *Read / Write* or *Owner*, review the generated SQL, apply it in one transaction. |
-| **Connected clients** | Live `pg_stat_activity`, with idle-in-transaction highlighted, and cancel/disconnect per client. |
-| **Backup & restore** | `pg_dump` with progress, restore into a new or existing database, and the right client version chosen automatically. |
-| **Logs** | Live tail of the server log, plus a record of every command the app has run on your behalf. |
+| **Connected clients** | Live `pg_stat_activity`, idle-in-transaction highlighted, cancel or disconnect any client. |
+| **Backup & restore** | `pg_dump` with progress, restore into a new or existing database, correct client version chosen automatically. |
+
+### Vault
+
+| | |
+|---|---|
+| **Dev or persistent** | Dev mode starts unsealed with a root token you choose and keeps nothing on disk. Persistent mode is file-backed, initialised and unsealed by the app, with keys in your Keychain. |
+| **Secrets** | Vault's own web UI, embedded, already signed in with your token — so policies, auth methods and leases are all there, not just key/value. |
+| **Reset** | Stop and erase the whole server in one action. |
+
+### Kafka
+
+| | |
+|---|---|
+| **Sets itself up** | Kafka 4 is KRaft-only, so storage must be formatted with a cluster ID before the broker will start. The app does that for you. |
+| **Topics** | Create, list, describe and delete, with internal topics hidden by default. |
+| **Messages** | Browse from the beginning or tail only new ones, with JSON payloads pretty-printed. Produce messages from the app too. |
+| **Reset** | Stop the broker and delete every topic and message. |
+
+Each service also has a **live log viewer**, and the app records every command it runs on your
+behalf so nothing it does to your machine is hidden.
 
 ## Install
 
 ### Option 1 — download
 
-Grab `PostgresManager.dmg` from the [latest release](../../releases/latest), open it, and drag
+Grab `DevServices.dmg` from the [latest release](../../releases/latest), open it, and drag
 the app to Applications.
 
 The first launch of a downloaded copy will be blocked, because this app is **ad-hoc signed
@@ -32,7 +52,7 @@ rather than notarised** — it is built in public CI with no Apple Developer acc
 signing secrets in this repository. To allow it, right-click the app and choose **Open**, or run:
 
 ```sh
-xattr -dr com.apple.quarantine "/Applications/PostgresManager.app"
+xattr -dr com.apple.quarantine "/Applications/DevServices.app"
 ```
 
 ### Option 2 — build it yourself
@@ -54,7 +74,8 @@ xcode-select --install
 
 ## Usage
 
-Open the app and look for the database icon in your menu bar.
+Open the app and look for the stacked-squares icon in your menu bar. Each service has its own
+section in the sidebar with its own Overview, and its own start/stop in the menu bar.
 
 - **No Postgres yet?** The window opens on a setup screen. Choose a version, and either copy the
   `brew install` command into your own terminal or press **Run for me**.
@@ -84,7 +105,7 @@ create later.
 ## Building
 
 ```sh
-make app     # build build/PostgresManager.app
+make app     # build build/DevServices.app
 make run     # build and launch
 make dmg     # build a drag-to-Applications disk image
 make test    # run the test suite
@@ -112,18 +133,29 @@ requires, in case you hit them elsewhere:
 ## How it works
 
 - **Swift 6 + SwiftUI**, built with SwiftPM; the `.app` bundle is assembled by a shell script.
-- **`PGKit`** holds all the logic and has no UI dependency, so it is testable on its own.
-- **Server control** uses `pg_ctl` directly, but detects when `brew services` owns a cluster and
-  routes start/stop through `brew` instead — otherwise launchd would immediately undo a stop.
-- **Status polling** reads `postmaster.pid` rather than spawning a process, which is what makes a
-  3-second refresh cheap. That file is also the authoritative source for the port and socket
-  directory a running server actually bound.
-- **Queries** go through [PostgresNIO](https://github.com/vapor/postgres-nio) over the Unix
-  domain socket. Command-line tools (`initdb`, `pg_ctl`, `pg_dump`, `pg_restore`, `brew`) are used
-  only where they genuinely are the interface.
-- **Passwords** are stored in the macOS Keychain, bound as query parameters rather than spliced
-  into SQL, and passed to CLI tools via a `0600` `PGPASSFILE` — never on a command line, where
-  `ps` would show them.
+- **`ServiceKit`** holds all the logic with no UI dependency, so it is testable on its own.
+- **Postgres** is controlled with `pg_ctl`, but the app detects when `brew services` owns a
+  cluster and routes start/stop through `brew` instead — otherwise launchd would immediately
+  undo a stop. Status comes from reading `postmaster.pid` rather than spawning a process.
+- **Vault and Kafka do not daemonise**, so the app supervises them itself: it spawns the process,
+  records its PID, redirects output to a log, and finds it again on the next launch. A running
+  server deliberately outlives the app that started it.
+- **Postgres queries** go through [PostgresNIO](https://github.com/vapor/postgres-nio) over the
+  Unix domain socket. **Vault** uses its HTTP API through `URLSession` — no dependency needed.
+  **Kafka** splits the difference: topic administration shells out to Kafka's own CLI (rare, so
+  JVM startup does not matter), while reading and producing messages uses
+  [swift-kafka-client](https://github.com/swift-server/swift-kafka-client), which vendors
+  librdkafka — so browsing a topic is instant instead of spinning up a JVM per refresh.
+- **Passwords and tokens** are stored in the macOS Keychain, bound as query parameters rather
+  than spliced into SQL, and passed to CLI tools via a `0600` `PGPASSFILE` — never on a command
+  line, where `ps` would show them.
+
+### A note on the Kafka dependency
+
+`swift-kafka-client` is pre-1.0 and pinned to an exact alpha, because an alpha is free to break
+its API between releases. It is the only native Swift Kafka client, and it vendors librdkafka, so
+it adds no Homebrew package. Topic administration deliberately does *not* use it: its admin API
+is only exposed under a `ForTesting` module.
 
 ## Privacy and security
 
