@@ -49,5 +49,5 @@ cp -R "$APP_DIR" /Applications/
 xattr -dr com.apple.quarantine "$DESTINATION" 2>/dev/null || true
 
 echo
-echo "Installed. Opening it now — look for the database icon in your menu bar."
+echo "Installed. Opening it now — look for the stacked-squares icon in your menu bar."
 open "$DESTINATION"
